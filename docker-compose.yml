@@ -4,7 +4,7 @@ services:
   order-service:
     build:
       context: ./order_service
-    container_name: order-service
+    container_name: order-service-async
     ports:
       - "8000:8000"
     depends_on:
@@ -17,7 +17,7 @@ services:
   payment-service:
     build:
       context: ./payment_service
-    container_name: payment-service
+    container_name: payment-service-async
     ports:
       - "8002:8002"
     depends_on:
@@ -28,7 +28,7 @@ services:
   notification-service:
     build:
       context: ./notification_service
-    container_name: notification-service
+    container_name: notification-service-async
     ports:
       - "8001:8001"
     depends_on:
@@ -38,7 +38,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:3-management
-    container_name: rabbitmq
+    container_name: rabbitmq-async
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -48,7 +48,7 @@ services:
 
   postgres:
     image: postgres:13
-    container_name: postgres
+    container_name: postgres-async
     environment:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres

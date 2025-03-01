@@ -33,7 +33,7 @@ app = FastAPI()
 
 class Order(BaseModel):
     customer_id: str
-    items: dict
+    items: list
     total_amount: float
 
 def publish_to_queue(queue_name, message):

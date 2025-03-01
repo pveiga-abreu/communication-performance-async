@@ -1,23 +1,39 @@
-from fastapi import FastAPI
-import pika
 import json
+import threading
+import time
+
+import pika
+from fastapi import FastAPI
 
 BROKER_URL = "amqp://guest:guest@rabbitmq:5672/"
 
 app = FastAPI()
 
+
 def publish_to_queue(queue_name, message):
-    connection = pika.BlockingConnection(pika.URLParameters(BROKER_URL))
-    channel = connection.channel()
-    channel.queue_declare(queue=queue_name, durable=True)
-    channel.basic_publish(exchange='', routing_key=queue_name, body=json.dumps(message))
-    connection.close()
+    """Publishes messages to RabbitMQ queues."""
+    retries = 5
+    while retries > 0:
+        try:
+            connection = pika.BlockingConnection(pika.URLParameters(BROKER_URL))
+            channel = connection.channel()
+            channel.queue_declare(queue=queue_name, durable=True)
+            channel.basic_publish(
+                exchange="", routing_key=queue_name, body=json.dumps(message)
+            )
+            connection.close()
+            print(f"Message published to {queue_name}: {message}")
+            break
+        except pika.exceptions.AMQPConnectionError:
+            print(
+                f"Failed to connect to RabbitMQ, retrying... ({retries} attempts left)"
+            )
+            time.sleep(2)
+            retries -= 1
 
-def callback(ch, method, properties, body):
-    data = json.loads(body)
-    order_id = data["order_id"]
-    amount = data["amount"]
 
+def process_payment(order_id, amount):
+    """Processes the payment and determines the status."""
     if amount > 1000:
         status = "Failed"
         message = f"Payment failed for Order {order_id}: amount exceeds limit."
@@ -25,14 +41,52 @@ def callback(ch, method, properties, body):
         status = "Paid"
         message = f"Payment processed successfully for Order {order_id}."
 
-    # Publish payment status to notification queue
-    publish_to_queue("notification_queue", {"order_id": order_id, "message": message, "status": status})
+    print(f"Payment status for Order {order_id}: {status}")
+
+    # Publish the payment status for order service to update the database
+    publish_to_queue("payment_processed", {"order_id": order_id, "status": status})
+
+    # Send notification about payment status
+    publish_to_queue("notification_queue", {"order_id": order_id, "message": message})
+
+
+def payment_callback(ch, method, properties, body):
+    """Callback function to process payment messages from the queue."""
+    data = json.loads(body)
+    order_id = data["order_id"]
+    amount = data["amount"]
+
+    print(f"Received payment request for Order {order_id} with amount: {amount}")
+
+    process_payment(order_id, amount)
+
+    # Acknowledge message processing
     ch.basic_ack(delivery_tag=method.delivery_tag)
 
-@app.on_event("startup")
+
 def start_consumer():
-    connection = pika.BlockingConnection(pika.URLParameters(BROKER_URL))
-    channel = connection.channel()
-    channel.queue_declare(queue="payment_queue", durable=True)
-    channel.basic_consume(queue="payment_queue", on_message_callback=callback)
-    channel.start_consuming()
+    """Starts the RabbitMQ consumer to listen for payment requests."""
+    retries = 5
+    while retries > 0:
+        try:
+            connection = pika.BlockingConnection(pika.URLParameters(BROKER_URL))
+            channel = connection.channel()
+            channel.queue_declare(queue="payment_queue", durable=True)
+            channel.basic_consume(
+                queue="payment_queue", on_message_callback=payment_callback
+            )
+            print("Payment consumer started and waiting for messages...")
+            channel.start_consuming()
+        except pika.exceptions.AMQPConnectionError:
+            print(
+                f"Failed to connect to RabbitMQ, retrying... ({retries} attempts left)"
+            )
+            time.sleep(2)
+            retries -= 1
+
+
+@app.on_event("startup")
+def startup_event():
+    """Runs the RabbitMQ consumer in a separate thread when the application starts."""
+    thread = threading.Thread(target=start_consumer, daemon=True)
+    thread.start()

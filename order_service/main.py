@@ -6,6 +6,7 @@ from datetime import datetime
 
 import pika
 from fastapi import FastAPI, HTTPException
+from prometheus_fastapi_instrumentator import Instrumentator
 from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, Float, String, create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -31,16 +32,24 @@ class OrderModel(Base):
     updated_at = Column(DateTime)
 
 
+class Order(BaseModel):
+    customer_id: str
+    items: list
+    total_amount: float
+
+
 Base.metadata.create_all(bind=engine)
 
 # FastAPI app
 app = FastAPI()
 
+Instrumentator().instrument(app).expose(app)
 
-class Order(BaseModel):
-    customer_id: str
-    items: list
-    total_amount: float
+
+# Health check
+@app.get("/health")
+async def health_check():
+    return {"status": "OK"}
 
 
 def publish_to_queue(queue_name, message):
@@ -62,6 +71,7 @@ def publish_to_queue(queue_name, message):
             retries -= 1
 
 
+# Order routes
 @app.post("/create_order")
 def create_order(order: Order):
     """Creates an order and sends messages to queues"""

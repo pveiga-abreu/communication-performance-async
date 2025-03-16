@@ -1,5 +1,7 @@
-fastapi
-uvicorn
-sqlalchemy
-psycopg2-binary
-pika
+fastapi==0.115.11
+uvicorn==0.34.0
+sqlalchemy==2.0.39
+psycopg2-binary==2.9.10
+pika==1.3.2
+prometheus-fastapi-instrumentator==7.0.2
+prometheus_client==0.21.1

@@ -1,6 +1,6 @@
 import json
 import threading
-import time
+from time import sleep
 
 import pika
 from fastapi import FastAPI
@@ -12,6 +12,10 @@ app = FastAPI()
 
 def process_notification(order_id, message):
     """Processes and logs the notification message."""
+
+    # Simulating a processing time
+    sleep(0.5)
+
     print(f"Notification for Order {order_id}: {message}")
 
 
@@ -46,7 +50,7 @@ def start_consumer():
             print(
                 f"Failed to connect to RabbitMQ, retrying... ({retries} attempts left)"
             )
-            time.sleep(2)
+            sleep(2)
             retries -= 1
 
 

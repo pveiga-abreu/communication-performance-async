@@ -1,6 +1,6 @@
 import json
 import threading
-import time
+from time import sleep
 
 import pika
 from fastapi import FastAPI
@@ -28,12 +28,16 @@ def publish_to_queue(queue_name, message):
             print(
                 f"Failed to connect to RabbitMQ, retrying... ({retries} attempts left)"
             )
-            time.sleep(2)
+            sleep(2)
             retries -= 1
 
 
 def process_payment(order_id, amount):
     """Processes the payment and determines the status."""
+
+    # Simulating a processing time
+    sleep(3)
+
     if amount > 1000:
         status = "Failed"
         message = f"Payment failed for Order {order_id}: amount exceeds limit."
@@ -81,7 +85,7 @@ def start_consumer():
             print(
                 f"Failed to connect to RabbitMQ, retrying... ({retries} attempts left)"
             )
-            time.sleep(2)
+            sleep(2)
             retries -= 1
 
 

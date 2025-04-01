@@ -5,7 +5,7 @@ from time import sleep
 import pika
 from fastapi import FastAPI
 
-BROKER_URL = "amqp://guest:guest@rabbitmq:5672/"
+BROKER_URL = "amqps://aykjquto:UWfBfBZOhl11xc2PpnkNyhk0dcBQ7g0D@leopard.lmq.cloudamqp.com/aykjquto"
 
 app = FastAPI()
 
@@ -34,7 +34,7 @@ def notification_callback(ch, method, properties, body):
 
 
 def start_consumer():
-    """Starts the RabbitMQ consumer to listen for notification messages."""
+    """Starts the Message Broker consumer to listen for notification messages."""
     retries = 5
     while retries > 0:
         try:
@@ -48,7 +48,7 @@ def start_consumer():
             channel.start_consuming()
         except pika.exceptions.AMQPConnectionError:
             print(
-                f"Failed to connect to RabbitMQ, retrying... ({retries} attempts left)"
+                f"Failed to connect to Message Broker, retrying... ({retries} attempts left)"
             )
             sleep(2)
             retries -= 1
@@ -56,6 +56,6 @@ def start_consumer():
 
 @app.on_event("startup")
 def startup_event():
-    """Runs the RabbitMQ consumer in a separate thread when the application starts."""
+    """Runs the Message Broker consumer in a separate thread when the application starts."""
     thread = threading.Thread(target=start_consumer, daemon=True)
     thread.start()

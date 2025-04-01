@@ -13,7 +13,7 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 
 DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/orders_db"
-BROKER_URL = "amqp://guest:guest@rabbitmq:5672/"
+BROKER_URL = "amqps://aykjquto:UWfBfBZOhl11xc2PpnkNyhk0dcBQ7g0D@leopard.lmq.cloudamqp.com/aykjquto"
 
 # Database setup
 Base = declarative_base()
@@ -53,7 +53,7 @@ async def health_check():
 
 
 def publish_to_queue(queue_name, message):
-    """Publishes messages to RabbitMQ"""
+    """Publishes messages to Message Broker"""
     retries = 5
     while retries > 0:
         try:
@@ -66,7 +66,7 @@ def publish_to_queue(queue_name, message):
             connection.close()
             break
         except pika.exceptions.AMQPConnectionError:
-            print("Failed to connect to RabbitMQ, retrying...")
+            print("Failed to connect to Message Broker, retrying...")
             time.sleep(2)
             retries -= 1
 
@@ -90,7 +90,7 @@ def create_order(order: Order):
     db.commit()
     db.close()
 
-    # Send events to RabbitMQ
+    # Send events to Message Broker
     publish_to_queue(
         "notification_queue",
         {"order_id": order_id, "message": "Order created successfully"},
@@ -131,7 +131,7 @@ def payment_callback(ch, method, properties, body):
 
 
 def start_consumer():
-    """Starts RabbitMQ consumer in a separate thread"""
+    """Starts Message Broker consumer in a separate thread"""
     retries = 5
     while retries > 0:
         try:
@@ -144,13 +144,13 @@ def start_consumer():
             print("Payment consumer started...")
             channel.start_consuming()
         except pika.exceptions.AMQPConnectionError:
-            print("Failed to connect to RabbitMQ, retrying...")
+            print("Failed to connect to Message Broker, retrying...")
             time.sleep(2)
             retries -= 1
 
 
 @app.on_event("startup")
 def startup_event():
-    """Starts RabbitMQ consumer in a separate thread"""
+    """Starts Message Broker consumer in a separate thread"""
     thread = threading.Thread(target=start_consumer, daemon=True)
     thread.start()

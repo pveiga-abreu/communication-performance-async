@@ -8,11 +8,10 @@ services:
     ports:
       - "8000:8000"
     depends_on:
-      - rabbitmq
       - postgres
     environment:
       - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/orders_db
-      - BROKER_URL=amqp://guest:guest@rabbitmq:5672/
+      - BROKER_URL=amqps://aykjquto:UWfBfBZOhl11xc2PpnkNyhk0dcBQ7g0D@leopard.lmq.cloudamqp.com/aykjquto
 
   payment-service:
     build:
@@ -20,10 +19,8 @@ services:
     container_name: payment-service-async
     ports:
       - "8002:8002"
-    depends_on:
-      - rabbitmq
     environment:
-      - BROKER_URL=amqp://guest:guest@rabbitmq:5672/
+      - BROKER_URL=amqps://aykjquto:UWfBfBZOhl11xc2PpnkNyhk0dcBQ7g0D@leopard.lmq.cloudamqp.com/aykjquto
 
   notification-service:
     build:
@@ -31,20 +28,8 @@ services:
     container_name: notification-service-async
     ports:
       - "8001:8001"
-    depends_on:
-      - rabbitmq
     environment:
-      - BROKER_URL=amqp://guest:guest@rabbitmq:5672/
-
-  rabbitmq:
-    image: rabbitmq:3-management
-    container_name: rabbitmq-async
-    ports:
-      - "5672:5672"
-      - "15672:15672"
-    environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      - BROKER_URL=amqps://aykjquto:UWfBfBZOhl11xc2PpnkNyhk0dcBQ7g0D@leopard.lmq.cloudamqp.com/aykjquto
 
   postgres:
     image: postgres:13
@@ -68,14 +53,6 @@ services:
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
 
-  grafana:
-    image: grafana/grafana
-    container_name: grafana-async
-    ports:
-      - 3000:3000
-    volumes:
-      - ./grafana_data:/var/lib/grafana
-
   locust:
     image: locustio/locust
     container_name: locust-async
@@ -92,13 +69,6 @@ volumes:
       o: bind
       type: none
       device: ./prometheus_data
-
-  grafana_data:
-    driver: local
-    driver_opts:
-      o: bind
-      type: none
-      device: ./grafana_data
 
   postgres_data:
 

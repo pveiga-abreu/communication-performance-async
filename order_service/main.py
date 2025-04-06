@@ -2,6 +2,7 @@ import json
 import threading
 import time
 import uuid
+import queue
 from datetime import datetime
 
 import pika
@@ -14,6 +15,7 @@ from sqlalchemy.orm import sessionmaker
 
 DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/orders_db"
 BROKER_URL = "amqps://aykjquto:UWfBfBZOhl11xc2PpnkNyhk0dcBQ7g0D@leopard.lmq.cloudamqp.com/aykjquto"
+POOL_SIZE = 10
 
 # Database setup
 Base = declarative_base()
@@ -38,7 +40,27 @@ class Order(BaseModel):
     total_amount: float
 
 
+# Connection Pool for Blocking Connections
+class BlockingConnectionPool:
+    def __init__(self, url: str, pool_size: int = 10):
+        self.url = url
+        self.pool_size = pool_size
+        self.pool = queue.Queue(maxsize=pool_size)
+        for _ in range(pool_size):
+            connection = pika.BlockingConnection(pika.URLParameters(url))
+            self.pool.put(connection)
+
+    def acquire(self):
+        return self.pool.get()
+
+    def release(self, connection):
+        self.pool.put(connection)
+
+
 Base.metadata.create_all(bind=engine)
+
+# Create a connection pool for the Message Broker
+publisher_pool = BlockingConnectionPool(BROKER_URL, pool_size=POOL_SIZE)
 
 # FastAPI app
 app = FastAPI()
@@ -57,16 +79,16 @@ def publish_to_queue(queue_name, message):
     retries = 5
     while retries > 0:
         try:
-            connection = pika.BlockingConnection(pika.URLParameters(BROKER_URL))
+            connection = publisher_pool.acquire()
             channel = connection.channel()
             channel.queue_declare(queue=queue_name, durable=True)
             channel.basic_publish(
                 exchange="", routing_key=queue_name, body=json.dumps(message)
             )
-            connection.close()
+            publisher_pool.release(connection)
             break
         except pika.exceptions.AMQPConnectionError:
-            print("Failed to connect to Message Broker, retrying...")
+            print("[Service: Order] Failed to connect to Message Broker, retrying...")
             time.sleep(2)
             retries -= 1
 
@@ -152,5 +174,6 @@ def start_consumer():
 @app.on_event("startup")
 def startup_event():
     """Starts Message Broker consumer in a separate thread"""
-    thread = threading.Thread(target=start_consumer, daemon=True)
-    thread.start()
+    for _ in range(10):
+        thread = threading.Thread(target=start_consumer, daemon=True)
+        thread.start()

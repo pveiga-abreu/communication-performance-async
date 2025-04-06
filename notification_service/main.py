@@ -57,5 +57,6 @@ def start_consumer():
 @app.on_event("startup")
 def startup_event():
     """Runs the Message Broker consumer in a separate thread when the application starts."""
-    thread = threading.Thread(target=start_consumer, daemon=True)
-    thread.start()
+    for _ in range(10):
+        thread = threading.Thread(target=start_consumer, daemon=True)
+        thread.start()

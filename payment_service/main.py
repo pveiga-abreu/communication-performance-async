@@ -36,7 +36,7 @@ def process_payment(order_id, amount):
     """Processes the payment and determines the status."""
 
     # Simulating a processing time
-    sleep(0.5)
+    sleep(3)
 
     if amount > 1000:
         status = "Failed"

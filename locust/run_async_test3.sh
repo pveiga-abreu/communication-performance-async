@@ -13,20 +13,20 @@ done
 
 for i in {1..10}; do
     # Create a directory for the current execution
-    output_dir="results/3_$i"
+    output_dir="results/400_$i"
     mkdir -p "$output_dir"
 
     # Run the locust command and save outputs in the created directory
-    locust -f locustfile.py  --headless --autostart --autoquit 90 \
+    locust -f locustfile.py  --headless --autostart --autoquit 60 \
         -H "$HOST" \
-        -u 2000 \
-        -r 200 \
-        -t 1m \
-        -s 60 \
+        -u 400 \
+        -r 10 \
+        -t 2m \
+        -s 40 \
         --print-stats \
-        --logfile "$output_dir/logfile_u2000_r200_t2m.log" \
-        --html "$output_dir/report_u2000_r200_t2m.html" \
-        --csv "$output_dir/report_u2000_r200_t2m" \
+        --logfile "$output_dir/logfile.log" \
+        --html "$output_dir/report.html" \
+        --csv "$output_dir/report" \
         --csv-full-history
 
     # Wait for 2 minute before the next test

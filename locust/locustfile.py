@@ -18,4 +18,6 @@ class User(HttpUser):
                 "items": items,
                 "total_amount": total_amount,
             },
+            timeout=30,
+            verify=False,
         )

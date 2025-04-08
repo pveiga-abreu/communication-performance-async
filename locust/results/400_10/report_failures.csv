@@ -1,0 +1,2 @@
+Method,Name,Error,Occurrences
+POST,/create_order,"ConnectTimeoutError(<urllib3.connection.HTTPConnection object at 0x....>, 'Connection to 3.92.83.228 timed out. (connect timeout=30)')",1043

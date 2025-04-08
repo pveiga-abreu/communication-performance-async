@@ -34,9 +34,12 @@ def publish_to_queue(queue_name, message):
 
 def process_payment(order_id, amount):
     """Processes the payment and determines the status."""
-
+    # Allocate a list (~1 MB) for simulating data processing
+    data = [b'x' * 1024 * 1024 for _ in range(1)]
     # Simulating a processing time
     sleep(3)
+    # Clean memory
+    del data
 
     if amount > 1000:
         status = "Failed"

@@ -12,9 +12,12 @@ app = FastAPI()
 
 def process_notification(order_id, message):
     """Processes and logs the notification message."""
-
+    # Allocate a list (~512 KB) for simulating data processing
+    data = [b'x' * 1024 * 512 for _ in range(1)]
     # Simulating a processing time
     sleep(0.5)
+    # Clean memory
+    del data
 
     print(f"Notification for Order {order_id}: {message}")
 

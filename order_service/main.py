@@ -15,7 +15,7 @@ from sqlalchemy.orm import sessionmaker
 
 DATABASE_URL = "postgresql://postgres:postgres@postgres:5432/orders_db"
 BROKER_URL = "amqps://aykjquto:UWfBfBZOhl11xc2PpnkNyhk0dcBQ7g0D@leopard.lmq.cloudamqp.com/aykjquto"
-POOL_SIZE = 10
+POOL_SIZE = 8
 
 # Database setup
 Base = declarative_base()
@@ -42,7 +42,7 @@ class Order(BaseModel):
 
 # Connection Pool for Blocking Connections
 class BlockingConnectionPool:
-    def __init__(self, url: str, pool_size: int = 10):
+    def __init__(self, url: str, pool_size: int = 8):
         self.url = url
         self.pool_size = pool_size
         self.pool = queue.Queue(maxsize=pool_size)
@@ -86,9 +86,12 @@ def publish_to_queue(queue_name, message):
                 exchange="", routing_key=queue_name, body=json.dumps(message)
             )
             publisher_pool.release(connection)
+            print(f"Message published to {queue_name}: {message}")
             break
         except pika.exceptions.AMQPConnectionError:
-            print("[Service: Order] Failed to connect to Message Broker, retrying...")
+            print(
+                f"[Publish] Failed to connect to Message Broker, retrying... ({retries} attempts left)"
+            )
             time.sleep(2)
             retries -= 1
 
@@ -166,7 +169,7 @@ def start_consumer():
             print("Payment consumer started...")
             channel.start_consuming()
         except pika.exceptions.AMQPConnectionError:
-            print("Failed to connect to Message Broker, retrying...")
+            print("[Consume] Failed to connect to Message Broker, retrying...")
             time.sleep(2)
             retries -= 1
 
@@ -174,6 +177,6 @@ def start_consumer():
 @app.on_event("startup")
 def startup_event():
     """Starts Message Broker consumer in a separate thread"""
-    for _ in range(10):
+    for _ in range(8):
         thread = threading.Thread(target=start_consumer, daemon=True)
         thread.start()

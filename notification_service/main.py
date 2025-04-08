@@ -13,7 +13,7 @@ app = FastAPI()
 def process_notification(order_id, message):
     """Processes and logs the notification message."""
     # Allocate a list (~512 KB) for simulating data processing
-    data = [b'x' * 1024 * 512 for _ in range(1)]
+    data = [b"x" * 1024 * 512 for _ in range(1)]
     # Simulating a processing time
     sleep(0.5)
     # Clean memory
@@ -51,7 +51,7 @@ def start_consumer():
             channel.start_consuming()
         except pika.exceptions.AMQPConnectionError:
             print(
-                f"Failed to connect to Message Broker, retrying... ({retries} attempts left)"
+                f"[Consume] Failed to connect to Message Broker, retrying... ({retries} attempts left)"
             )
             sleep(2)
             retries -= 1
@@ -60,6 +60,6 @@ def start_consumer():
 @app.on_event("startup")
 def startup_event():
     """Runs the Message Broker consumer in a separate thread when the application starts."""
-    for _ in range(10):
+    for _ in range(8):
         thread = threading.Thread(target=start_consumer, daemon=True)
         thread.start()
